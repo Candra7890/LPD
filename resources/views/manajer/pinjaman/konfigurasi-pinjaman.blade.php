@@ -321,11 +321,6 @@ $(document).ready(function() {
         formatRupiah(this);
     });
 
-    togglePlafonApproval();
-    $('#wajib_approval_manajer').on('change', function() {
-        togglePlafonApproval();
-    });
-
     togglePelunasan();
     $('#pelunasandipercepat').on('change', function() {
         togglePelunasan();
@@ -350,21 +345,6 @@ function formatRupiah(input) {
 
     rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
     input.value = rupiah;
-}
-
-function togglePlafonApproval() {
-    const isRequired = $('#wajib_approval_manajer').val() == '1';
-    const $group = $('#plafon_approval_group');
-    const $input = $('#plafon_approval_manajer_minimum');
-    
-    if(isRequired) {
-        $group.show();
-        $input.prop('disabled', false);
-    } else {
-        $group.hide();
-        $input.prop('disabled', true);
-        $input.val('0');
-    }
 }
 
 function togglePelunasan() {
