@@ -131,16 +131,6 @@
                                         <p><strong>Pinalti Pelunasan:</strong><br>{{ $konfigurasi->persentase_pinalti_pelunasan }}%</p>
                                     </div>
                                     <div class="col-md-6">
-                                        <p><strong>Wajib Approval Manajer:</strong><br>
-                                            <span class="badge badge-{{ $konfigurasi->wajib_approval_manajer ? 'success' : 'secondary' }}">
-                                                {{ $konfigurasi->wajib_approval_manajer ? 'Ya' : 'Tidak' }}
-                                            </span>
-                                        </p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p><strong>Plafon Min. Approval Manajer:</strong><br>Rp {{ number_format($konfigurasi->plafon_approval_manajer_minimum, 0, ',', '.') }}</p>
-                                    </div>
-                                    <div class="col-md-6">
                                         <p><strong>Wajib Agunan:</strong><br>
                                             <span class="badge badge-{{ $konfigurasi->wajib_agunan ? 'success' : 'secondary' }}">
                                                 {{ $konfigurasi->wajib_agunan ? 'Wajib' : 'Tidak Wajib' }}
@@ -306,23 +296,6 @@
 
                     <hr>
                     <h6 class="text-primary"><i class="fa fa-cog"></i> Pengaturan Lainnya</h6>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Wajib Approval Manajer</label>
-                                <select name="wajib_approval_manajer" id="wajib_approval_manajer" class="form-control">
-                                    <option value="0" {{ ($konfigurasi->wajib_approval_manajer ?? 0) == 0 ? 'selected' : '' }}>Tidak</option>
-                                    <option value="1" {{ ($konfigurasi->wajib_approval_manajer ?? 0) == 1 ? 'selected' : '' }}>Ya</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group" id="plafon_approval_group">
-                                <label>Plafon Min. Approval Manajer (Rp)</label>
-                                <input type="text" name="plafon_approval_manajer_minimum" id="plafon_approval_manajer_minimum" class="form-control rupiah-format" value="{{ $konfigurasi ? number_format($konfigurasi->plafon_approval_manajer_minimum, 0, ',', '.') : '0' }}">
-                            </div>
-                        </div>
-                    </div>
                     <div class="form-group">
                         <label>Wajib Agunan <span class="text-danger">*</span></label>
                         <select name="wajib_agunan" class="form-control" required>
