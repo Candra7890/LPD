@@ -2,17 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Nasabah;
+
 use App\Models\Pekerjaan;
+use App\Services\LayananPengguna;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
 
 class NasabahController extends Controller
 {
+    protected $layananPengguna;
+
+    public function __construct(LayananPengguna $layananPengguna)
+    {
+        $this->layananPengguna = $layananPengguna;
+    }
+
     public function index()
     {
-        $nasabah = Nasabah::with('pekerjaan')->orderBy('created_at', 'desc')->get();
+        $nasabah = $this->layananPengguna->getAllNasabah();
         $pekerjaan = Pekerjaan::orderBy('nama_pekerjaan', 'asc')->get();
         return view('teller.nasabah.manajemen-nasabah', compact('nasabah', 'pekerjaan'));
     }
@@ -53,37 +60,20 @@ class NasabahController extends Controller
                 ->withInput();
         }
 
-        $kodeNasabah = $this->generateKodeNasabah();
-
-        $fotoPath = null;
-        if ($request->hasFile('foto')) {
-            $file = $request->file('foto');
-            $filename = 'nasabah_' . time() . '.' . $file->getClientOriginalExtension();
-            $fotoPath = $file->storeAs('nasabah', $filename, 'public');
-        }
-
-        Nasabah::create([
-            'kode_nasabah' => $kodeNasabah,
-            'nik' => $request->nik,
-            'nama_lengkap' => $request->nama_lengkap,
-            'jenis_kelamin' => $request->jenis_kelamin,
-            'tempat_lahir' => $request->tempat_lahir,
-            'tanggal_lahir' => $request->tanggal_lahir,
-            'alamat' => $request->alamat,
-            'no_telepon' => $request->no_telepon,
-            'pekerjaan' => $request->pekerjaan,
-            'status_perkawinan' => $request->status_perkawinan,
-            'foto' => $fotoPath,
-            'is_active' => 1,
-        ]);
+        $fotoFile = $request->file('foto');
+        
+        // Data tanpa foto, foto dihandle service
+        $data = $request->except(['foto', '_token']);
+        
+        $nasabah = $this->layananPengguna->createNasabah($data, $fotoFile);
 
         return redirect()->route('teller.nasabah.index')
-            ->with('success', 'Data nasabah berhasil ditambahkan dengan kode: ' . $kodeNasabah);
+            ->with('success', 'Data nasabah berhasil ditambahkan dengan kode: ' . $nasabah->kode_nasabah);
     }
 
     public function show($id)
     {
-        $nasabah = Nasabah::findOrFail($id);
+        $nasabah = $this->layananPengguna->getNasabahById($id);
         
         $html = '
             <div class="row">
@@ -141,7 +131,7 @@ class NasabahController extends Controller
 
     public function edit($id)
     {
-        $nasabah = Nasabah::findOrFail($id);
+        $nasabah = $this->layananPengguna->getNasabahById($id);
         
         $html = '
             <h6 class="text-primary"><i class="fa fa-user"></i> Data Identitas</h6>
@@ -246,8 +236,6 @@ class NasabahController extends Controller
 
     public function update(Request $request, $id)
     {
-        $nasabah = Nasabah::findOrFail($id);
-        
         $validator = Validator::make($request->all(), [
             'nik' => 'required|string|size:16|unique:nasabah,nik,' . $id,
             'nama_lengkap' => 'required|string|max:255',
@@ -276,32 +264,10 @@ class NasabahController extends Controller
                 ->withInput();
         }
 
-        $data = [
-            'nik' => $request->nik,
-            'nama_lengkap' => $request->nama_lengkap,
-            'jenis_kelamin' => $request->jenis_kelamin,
-            'tempat_lahir' => $request->tempat_lahir,
-            'tanggal_lahir' => $request->tanggal_lahir,
-            'alamat' => $request->alamat,
-            'no_telepon' => $request->no_telepon,
-            'pekerjaan' => $request->pekerjaan,
-            'status_perkawinan' => $request->status_perkawinan,
-            'is_active' => $request->is_active,
-        ];
+        $data = $request->except(['foto', '_token', '_method']);
+        $fotoFile = $request->file('foto');
 
-        if ($request->hasFile('foto')) {
-            // Hapus foto lama jika ada
-            if ($nasabah->foto && Storage::disk('public')->exists($nasabah->foto)) {
-                Storage::disk('public')->delete($nasabah->foto);
-            }
-            
-            $file = $request->file('foto');
-            $filename = 'nasabah_' . time() . '.' . $file->getClientOriginalExtension();
-            $fotoPath = $file->storeAs('nasabah', $filename, 'public');
-            $data['foto'] = $fotoPath;
-        }
-
-        $nasabah->update($data);
+        $this->layananPengguna->updateNasabah($id, $data, $fotoFile);
 
         return redirect()->route('teller.nasabah.index')
             ->with('success', 'Data nasabah berhasil diupdate');
@@ -309,36 +275,9 @@ class NasabahController extends Controller
 
     public function destroy($id)
     {
-        $nasabah = Nasabah::findOrFail($id);
-        
-        // Hapus foto jika ada
-        if ($nasabah->foto && Storage::disk('public')->exists($nasabah->foto)) {
-            Storage::disk('public')->delete($nasabah->foto);
-        }
-        
-        $nasabah->delete();
+        $this->layananPengguna->deleteNasabah($id);
 
         return redirect()->route('teller.nasabah.index')
             ->with('success', 'Data nasabah berhasil dihapus');
-    }
-
-    private function generateKodeNasabah()
-    {
-        $prefix = 'NSB';
-        $year = date('Y');
-        $month = date('m');
-        
-        $lastNasabah = Nasabah::where('kode_nasabah', 'like', $prefix . $year . $month . '%')
-            ->orderBy('kode_nasabah', 'desc')
-            ->first();
-        
-        if ($lastNasabah) {
-            $lastNumber = intval(substr($lastNasabah->kode_nasabah, -4));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        return $prefix . $year . $month . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
     }
 }

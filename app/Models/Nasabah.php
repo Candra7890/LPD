@@ -17,6 +17,15 @@ class Nasabah extends Model
         return $this->kode_nasabah . ' - ' . $this->nama_lengkap;
     }
 
+    public function getFotoUrlAttribute()
+    {
+        if ($this->foto && \Illuminate\Support\Facades\Storage::disk('public')->exists($this->foto)) {
+            return \Illuminate\Support\Facades\Storage::url($this->foto);
+        }
+        return asset('assets/images/users/1.jpg');
+    }
+
+
     public function getAgeAttribute()
     {
         return \Carbon\Carbon::parse($this->tanggal_lahir)->age;

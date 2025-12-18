@@ -2,18 +2,24 @@
 
 namespace App\Http\Controllers;
 
+
 use App\Models\User;
+use App\Services\LayananPengguna;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class ManajemenPegawaiController extends Controller
 {
+    protected $layananPengguna;
+
+    public function __construct(LayananPengguna $layananPengguna)
+    {
+        $this->layananPengguna = $layananPengguna;
+    }
+
     public function index()
     {
-        $tellers = User::where('role', 1) // 1 = teller
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $tellers = $this->layananPengguna->getAllTellers();
         
         return view('manajer.manajemen-pegawai.index', compact('tellers'));
     }
@@ -36,13 +42,7 @@ class ManajemenPegawaiController extends Controller
             'is_active.required' => 'Status wajib dipilih',
         ]);
 
-        User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => 1, // Set role sebagai teller
-            'is_active' => $validated['is_active'],
-        ]);
+        $this->layananPengguna->createTeller($validated);
 
         return redirect()
             ->route('manajer.manajemen-pegawai.index')
@@ -51,7 +51,7 @@ class ManajemenPegawaiController extends Controller
 
     public function update(Request $request, $id)
     {
-        $user = User::where('role', 1)->findOrFail($id);
+        $user = $this->layananPengguna->getTellerById($id);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -72,17 +72,7 @@ class ManajemenPegawaiController extends Controller
             'is_active.required' => 'Status wajib dipilih',
         ]);
 
-        $updateData = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'is_active' => $validated['is_active'],
-        ];
-
-        if (!empty($validated['password'])) {
-            $updateData['password'] = Hash::make($validated['password']);
-        }
-
-        $user->update($updateData);
+        $this->layananPengguna->updateTeller($id, $validated);
 
         return redirect()
             ->route('manajer.manajemen-pegawai.index')
@@ -91,7 +81,7 @@ class ManajemenPegawaiController extends Controller
 
     public function edit($id)
     {
-        $user = User::where('role', 1)->findOrFail($id);
+        $user = $this->layananPengguna->getTellerById($id);
         
         return response()->json([
             'id' => $user->id,
@@ -103,9 +93,7 @@ class ManajemenPegawaiController extends Controller
 
     public function destroy($id)
     {
-        $user = User::where('role', 1)->findOrFail($id);
-        
-        $user->delete();
+        $this->layananPengguna->deleteTeller($id);
 
         return redirect()
             ->route('manajer.manajemen-pegawai.index')

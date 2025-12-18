@@ -2,41 +2,37 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PinjamanAktif;
-use App\Models\JadwalAngsuran;
+
+use App\Services\LayananAngsuran;
 use Illuminate\Http\Request;
 
 class PinjamanAktifController extends Controller
 {
+    protected $layananAngsuran;
+
+    public function __construct(LayananAngsuran $layananAngsuran)
+    {
+        $this->layananAngsuran = $layananAngsuran;
+    }
+
     public function index()
     {
-        $pinjamanAktif = PinjamanAktif::with(['pengguna', 'pinjaman', 'pengajuan_pinjaman'])
-            ->orderBy('tanggal_pencairan', 'desc')
-            ->get();
+        $pinjamanAktif = $this->layananAngsuran->getAllPinjamanAktif();
         
         return view('teller.pinjaman.pinjaman-aktif.index', compact('pinjamanAktif'));
     }
 
     public function show($id)
     {
-        $pinjamanAktif = PinjamanAktif::with([
-            'pengguna',
-            'pinjaman',
-            'pengajuan_pinjaman',
-            'agunan'
-        ])->findOrFail($id);
+        $pinjamanAktif = $this->layananAngsuran->getPinjamanAktifById($id);
         
         return view('teller.pinjaman.pinjaman-aktif.show', compact('pinjamanAktif'));
     }
 
     public function jadwalAngsuran($id)
     {
-        $pinjamanAktif = PinjamanAktif::with(['pengguna', 'pinjaman'])
-            ->findOrFail($id);
-        
-        $jadwalAngsuran = JadwalAngsuran::where('pinjaman_aktif_id', $id)
-            ->orderBy('angsuran_ke', 'asc')
-            ->get();
+        $pinjamanAktif = $this->layananAngsuran->getPinjamanAktifById($id);
+        $jadwalAngsuran = $this->layananAngsuran->getJadwalAngsuran($id);
         
         return view('teller.pinjaman.pinjaman-aktif.jadwalangsuran', compact('pinjamanAktif', 'jadwalAngsuran'));
     }

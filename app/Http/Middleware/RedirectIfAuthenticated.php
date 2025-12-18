@@ -24,17 +24,7 @@ class RedirectIfAuthenticated
             if (Auth::guard($guard)->check()) {
                 $user = Auth::user();
                 
-                // Redirect based on role
-                switch ($user->role) {
-                    case 1: // Teller
-                        return redirect()->route('teller.dashboard');
-                    case 2: // Manajer
-                        return redirect()->route('manajer.dashboard');
-                    case 3: // Nasabah
-                        return redirect()->route('nasabah.dashboard');
-                    default:
-                        return redirect('/');
-                }
+                return redirect()->route('dashboard');
             }
         }
 

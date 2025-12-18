@@ -2,27 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RiwayatPinjaman;
+
+use App\Services\LayananAngsuran;
 use Illuminate\Http\Request;
 
 class RiwayatPinjamanController extends Controller
 {
+    protected $layananAngsuran;
+
+    public function __construct(LayananAngsuran $layananAngsuran)
+    {
+        $this->layananAngsuran = $layananAngsuran;
+    }
+
     public function index()
     {
-        $riwayatPinjaman = RiwayatPinjaman::with(['pengguna', 'pinjaman', 'pinjaman_aktif'])
-            ->orderBy('tanggal_pelunasan', 'desc')
-            ->get();
+        $riwayatPinjaman = $this->layananAngsuran->getAllRiwayatPinjaman();
         
         return view('teller.pinjaman.riwayat-pinjaman.index', compact('riwayatPinjaman'));
     }
 
     public function show($id)
     {
-        $riwayatPinjaman = RiwayatPinjaman::with([
-            'pengguna',
-            'pinjaman',
-            'pinjaman_aktif.agunan'
-        ])->findOrFail($id);
+        $riwayatPinjaman = $this->layananAngsuran->getRiwayatPinjamanById($id);
         
         return view('teller.pinjaman.riwayat-pinjaman.show', compact('riwayatPinjaman'));
     }

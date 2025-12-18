@@ -2,21 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Agunan;
+
 use App\Models\PengajuanPinjaman;
+use App\Services\LayananAgunan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
 
 class AgunanController extends Controller
 {
+    protected $layananAgunan;
+
+    public function __construct(LayananAgunan $layananAgunan)
+    {
+        $this->layananAgunan = $layananAgunan;
+    }
+
     /**
      * Show the form for creating agunan
      */
     public function create($pengajuanId)
     {
+        // Note: Idealnya ini via LayananPinjaman, tapi karena belum dibuat, kita skip refactor bagian ini dulu
         $pengajuan = PengajuanPinjaman::with(['pengguna', 'pinjaman'])
             ->findOrFail($pengajuanId);
         
@@ -59,35 +67,7 @@ class AgunanController extends Controller
 
         DB::beginTransaction();
         try {
-            // Generate nomor agunan
-            $lastAgunan = Agunan::whereYear('created_at', date('Y'))
-                ->whereMonth('created_at', date('m'))
-                ->orderBy('id', 'desc')
-                ->first();
-            
-            $lastNumber = $lastAgunan ? intval(substr($lastAgunan->nomor_agunan, -4)) : 0;
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-            $nomorAgunan = 'AGN-' . date('Ym') . '-' . $newNumber;
-
-            // Upload file
-            $file = $request->file('file_agunan');
-            $fileName = time() . '_' . $nomorAgunan . '.' . $file->getClientOriginalExtension();
-            $filePath = $file->storeAs('agunan', $fileName, 'public');
-
-            Agunan::create([
-                'nomor_agunan' => $nomorAgunan,
-                'pengajuan_pinjaman_id' => $request->pengajuan_pinjaman_id,
-                'nama_agunan' => $request->nama_agunan,
-                'deskripsi' => $request->deskripsi,
-                'nilai_pasar' => $request->nilai_pasar,
-                'nilai_penjaminan' => $request->nilai_penjaminan,
-                'status_kepemilikan' => $request->status_kepemilikan,
-                'nama_pemilik' => $request->nama_pemilik,
-                'alamat_agunan' => $request->alamat_agunan,
-                'file_agunan' => $filePath,
-                'lokasi_agunan_tersimpan' => $request->lokasi_agunan_tersimpan,
-                'status' => 3, // Status pengajuan
-            ]);
+            $this->layananAgunan->createAgunan($request->all(), $request->file('file_agunan'));
 
             DB::commit();
 
@@ -96,12 +76,6 @@ class AgunanController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            // Delete uploaded file if exists
-            if (isset($filePath) && Storage::disk('public')->exists($filePath)) {
-                Storage::disk('public')->delete($filePath);
-            }
-            
             return redirect()->back()
                 ->with('error', 'Gagal mengunggah agunan: ' . $e->getMessage())
                 ->withInput();
@@ -113,8 +87,7 @@ class AgunanController extends Controller
      */
     public function show($id)
     {
-        $agunan = Agunan::with(['pengajuan_pinjaman.pengguna', 'pengajuan_pinjaman.pinjaman'])
-            ->findOrFail($id);
+        $agunan = $this->layananAgunan->getAgunanById($id);
         
         return view('teller.pinjaman.agunan.show', compact('agunan'));
     }
@@ -124,22 +97,13 @@ class AgunanController extends Controller
      */
     public function approve($id)
     {
-        DB::beginTransaction();
         try {
-            $agunan = Agunan::findOrFail($id);
-
-            $agunan->update([
-                'status' => 1, // Diterima
-                'tanggal_pengikatan' => Carbon::now()
-            ]);
-
-            DB::commit();
+            $this->layananAgunan->approveAgunan($id);
 
             return redirect()->route('teller.pengajuan-pinjaman.index')
                 ->with('success', 'Agunan berhasil disetujui');
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return redirect()->back()
                 ->with('error', 'Gagal menyetujui agunan: ' . $e->getMessage());
         }
@@ -150,21 +114,13 @@ class AgunanController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        DB::beginTransaction();
         try {
-            $agunan = Agunan::findOrFail($id);
-
-            $agunan->update([
-                'status' => 2, // Ditolak
-            ]);
-
-            DB::commit();
+            $this->layananAgunan->rejectAgunan($id);
 
             return redirect()->route('teller.pengajuan-pinjaman.index')
                 ->with('success', 'Agunan ditolak');
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return redirect()->back()
                 ->with('error', 'Gagal menolak agunan: ' . $e->getMessage());
         }

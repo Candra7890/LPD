@@ -2,13 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\KonfigurasiPinjaman;
+
 use App\Models\Pinjaman;
+use App\Services\LayananPinjaman;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class KonfigurasiPinjamanController extends Controller
 {
+    protected $layananPinjaman;
+
+    public function __construct(LayananPinjaman $layananPinjaman)
+    {
+        $this->layananPinjaman = $layananPinjaman;
+    }
+
     public function index(Request $request)
     {
         $pinjamanId = $request->query('pinjaman_id');
@@ -19,7 +27,7 @@ class KonfigurasiPinjamanController extends Controller
         }
 
         $pinjaman = Pinjaman::with('jenisPinjaman')->findOrFail($pinjamanId);
-        $konfigurasi = KonfigurasiPinjaman::where('pinjaman_id', $pinjamanId)->first();
+        $konfigurasi = $this->layananPinjaman->getKonfigurasiByPinjamanId($pinjamanId);
         
         return view('manajer.pinjaman.konfigurasi-pinjaman', compact('pinjaman', 'konfigurasi'));
     }
@@ -68,7 +76,7 @@ class KonfigurasiPinjamanController extends Controller
                 ->withInput();
         }
 
-        KonfigurasiPinjaman::create($request->all());
+        $this->layananPinjaman->storeKonfigurasi($request->all());
 
         return redirect()
             ->route('manajer.konfigurasi-pinjaman.index', ['pinjaman_id' => $request->pinjaman_id])
@@ -112,8 +120,7 @@ class KonfigurasiPinjamanController extends Controller
                 ->withInput();
         }
 
-        $konfigurasi = KonfigurasiPinjaman::findOrFail($id);
-        $konfigurasi->update($request->all());
+        $this->layananPinjaman->updateKonfigurasi($id, $request->all());
 
         return redirect()
             ->route('manajer.konfigurasi-pinjaman.index', ['pinjaman_id' => $request->pinjaman_id])
@@ -122,8 +129,7 @@ class KonfigurasiPinjamanController extends Controller
 
     public function destroy($id)
     {
-        $konfigurasi = KonfigurasiPinjaman::findOrFail($id);
-        $konfigurasi->delete();
+        $this->layananPinjaman->deleteKonfigurasi($id);
 
         return redirect()->route('manajer.konfigurasi-pinjaman.index')
             ->with('success', 'Konfigurasi pinjaman berhasil dihapus');
