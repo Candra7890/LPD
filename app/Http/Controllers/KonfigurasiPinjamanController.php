@@ -43,8 +43,6 @@ class KonfigurasiPinjamanController extends Controller
             'toleransi_periode_denda' => 'required|integer|min:0',
             'pelunasandipercepat' => 'required|in:0,1',
             'persentase_pinalti_pelunasan' => 'required|numeric|min:0|max:100',
-            'plafon_approval_manajer_minimum' => 'required|numeric|min:0',
-            'wajib_approval_manajer' => 'required|in:0,1',
             'wajib_agunan' => 'required|in:0,1',
         ], [
             'pinjaman_id.required' => 'Produk pinjaman wajib dipilih',
@@ -96,8 +94,6 @@ class KonfigurasiPinjamanController extends Controller
             'toleransi_periode_denda' => 'required|integer|min:0',
             'pelunasandipercepat' => 'required|in:0,1',
             'persentase_pinalti_pelunasan' => 'required|numeric|min:0|max:100',
-            'plafon_approval_manajer_minimum' => 'required|numeric|min:0',
-            'wajib_approval_manajer' => 'required|in:0,1',
             'wajib_agunan' => 'required|in:0,1',
         ]);
 
